@@ -37,12 +37,13 @@ public class PostServiceImpl implements PostService {
 
     @Autowired
     private ModelMapper modelMapper;
+
     @Override
     public PostDto createPost(PostDto postDto, Integer userId, Integer categoryId) {
         User user = this.userRepo.findById(userId).orElseThrow(()-> new ResourceNotFoundException("User","UserId",userId));
         Category category = this.categoryRepo.findById(categoryId).orElseThrow(()-> new ResourceNotFoundException("Category","CategoryId",categoryId));
         Post post = this.modelMapper.map(postDto, Post.class);
-        post.setImageName("default.png");
+        post.setImageName("Default.png");
         post.setAddedDate(new Date());
         post.setUser(user);
         post.setCategory(category);
@@ -95,26 +96,10 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public PostResponse getPostByCategory(Integer categoryId,Integer pageNumber,Integer pageSize,String sortBy) {
-
-        Category category = this.categoryRepo.findById(categoryId).orElseThrow(()->new ResourceNotFoundException("Category","CategoryId",categoryId));
-        Pageable pageable = PageRequest.of(pageNumber,pageSize,Sort.by(sortBy));
-
-        Page<Post> posts=this.postRepo.findAll(pageable);
-        List<Post> postList=posts.getContent();
-        List<PostDto> postDtos = posts.stream().map(post -> this.modelMapper.map(post, PostDto.class)).collect(Collectors.toList());
-        PostResponse postResponse = new PostResponse();
-        postResponse.setContent(postDtos);
-        postResponse.setPageNumber(posts.getNumber());
-        postResponse.setPageSize(posts.getSize());
-        postResponse.setTotalElement(posts.getTotalElements());
-        postResponse.setLastPage(posts.isLast());
-
-        return postResponse;
-
-
-
-//        return posts.stream().map(post -> this.modelMapper.map(post,PostDto.class)).collect(Collectors.toList());
+    public List<PostDto> getPostByCategory(Integer categoryId) {
+    Category category = this.categoryRepo.findById(categoryId).orElseThrow(()-> new ResourceNotFoundException("Category","CategoryId",categoryId));
+    List<Post> posts = this.postRepo.findByCategory(category);
+    return posts.stream().map(post -> this.modelMapper.map(post,PostDto.class)).collect(Collectors.toList());
     }
 
     @Override
@@ -126,7 +111,9 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public List<Post> searchPost(String keyword) {
-        return null;
+    public List<PostDto> searchPost(String keyword) {
+        List<Post> posts = this.postRepo.searchByTitleContaining("%"+keyword+"%");
+        return posts.stream().map(post -> this.modelMapper.map(post,PostDto.class)).collect(Collectors.toList());
+
     }
 }
